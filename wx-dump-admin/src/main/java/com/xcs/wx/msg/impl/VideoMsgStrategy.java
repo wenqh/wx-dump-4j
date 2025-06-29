@@ -15,7 +15,7 @@ public class VideoMsgStrategy implements MsgStrategy {
 
     @Override
     public boolean support(Integer type, Integer subType) {
-        return type == 34 && subType == 0;
+        return type == 43 && subType == 0;
     }
 
     @Override

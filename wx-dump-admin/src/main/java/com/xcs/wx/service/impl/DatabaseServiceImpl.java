@@ -63,6 +63,7 @@ public class DatabaseServiceImpl implements DatabaseService, ApplicationRunner {
         String dbPath = decryptDTO.getBasePath() + separator + decryptDTO.getWxId();
         // 秘钥
         String key = weChatService.getKey(decryptDTO.getPid(), dbPath);
+        key = MyPlugin.orDefaultKey(key);
         // 获取微信秘钥失败
         if (StrUtil.isBlank(key)) {
             try {

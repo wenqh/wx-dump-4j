@@ -22,7 +22,7 @@ public interface MsgRepository {
      * @param nextSequence 下一个序列号
      * @return Msg
      */
-    List<Msg> queryMsgByTalker(String talker, Long nextSequence);
+    List<Msg> queryMsgByTalker(String talker, Long nextSequence, int size);
 
     /**
      * 导出数据

@@ -15,6 +15,7 @@ public class UseStaticResourceConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/**").addResourceLocations("file:../html/");
+        registry.addResourceHandler("/**").addResourceLocations("file:../html/")
+                .addResourceLocations("file:wx-dump-ui/dist/");
     }
 }

@@ -10,6 +10,7 @@ import com.xcs.wx.domain.vo.MsgTypeDistributionVO;
 import com.xcs.wx.domain.vo.TopContactsVO;
 import com.xcs.wx.mapper.MsgMapper;
 import com.xcs.wx.repository.MsgRepository;
+import com.xcs.wx.service.impl.MyPlugin;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
@@ -29,16 +30,17 @@ import java.util.stream.Collectors;
 public class MsgRepositoryImpl extends ServiceImpl<MsgMapper, Msg> implements MsgRepository {
 
     @Override
-    public List<Msg> queryMsgByTalker(String talker, Long nextSequence) {
+    public List<Msg> queryMsgByTalker(String talker, Long nextSequence, int size) {
         List<Msg> msgList = new ArrayList<>();
-        List<String> msgDbList = DataSourceType.getMsgDb().stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList());
-        int offset = 20;
+        List<String> msgDbList = DataSourceType.getMsgDb().stream().sorted(size >= 0 ? Comparator.naturalOrder() : Comparator.reverseOrder()).collect(Collectors.toList());
+        int offset = Math.abs(size);
         for (String poolName : msgDbList) {
             if (offset <= 0) break;
             DynamicDataSourceContextHolder.push(poolName);
             List<Msg> queryResultList = super.list(Wrappers.<Msg>lambdaQuery()
-                    .eq(Msg::getStrTalker, talker).orderByDesc(Msg::getSequence)
-                    .lt((nextSequence != null && nextSequence > 0), Msg::getSequence, nextSequence)
+                    .eq(Msg::getStrTalker, talker).orderBy(true, size >= 0, Msg::getSequence)
+                    .le(size < 0 && (nextSequence != null && nextSequence > 0), Msg::getSequence, nextSequence)
+                    .gt(size >= 0 && (nextSequence != null && nextSequence > 0), Msg::getSequence, nextSequence)
                     .last("limit " + offset));
             DynamicDataSourceContextHolder.clear();
             offset -= queryResultList.size();

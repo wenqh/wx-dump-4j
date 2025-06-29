@@ -1,6 +1,6 @@
 import {querySession} from '@/services/Session';
 import {ProCard} from '@ant-design/pro-components';
-import {Avatar, List, Typography} from 'antd';
+import {Avatar, List, Typography, Button} from 'antd';
 import {useEffect, useState} from 'react';
 import Chat from './Chat';
 import './Style/Session.less';
@@ -27,6 +27,7 @@ export default () => {
   const handleMsg = (item: SessionItem) => {
     setUserName(item.userName);
     setNickName(item.nickName);
+    item.hasNotification = false;
   };
 
   useEffect(() => {
@@ -34,8 +35,10 @@ export default () => {
   }, []);
 
   return (
-    <ProCard split="vertical">
-      <ProCard bordered title="聊天列表" colSpan="28%" bodyStyle={{paddingInline: '0px'}}>
+    <ProCard split="vertical" bodyStyle={{flexDirection: "row-reverse"}}>
+      <ProCard bordered title="聊天列表" colSpan="28%" bodyStyle={{paddingInline: '0px'}}
+               extra={<Button type="link" onClick={() => setSessionList(sessionList.filter(i => i.userName.endsWith('@chatroom')))}>⚙️</Button>}
+      >
         <List
           dataSource={sessionList}
           className="session-scrollbar"

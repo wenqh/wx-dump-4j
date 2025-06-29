@@ -41,7 +41,10 @@ public class SessionServiceImpl implements SessionService {
                     return sessions;
                 })
                 // 处理日期
-                .ifPresent(sessionVos -> sessionVos.forEach(sessionVo -> sessionVo.setShortTime(DateFormatUtil.formatTimestamp(sessionVo.getTime()))))
+                .ifPresent(sessionVos -> sessionVos.forEach(sessionVo -> {
+                    sessionVo.setShortTime(DateFormatUtil.formatTimestamp(sessionVo.getTime()));
+                    sessionVo.setHasNotification(sessionVo.getTime() > MyPlugin.json.getLong(sessionVo.getUserName(), 0L) / 1000);
+                }))
                 // 默认值
                 .orElse(Collections.emptyList());
     }

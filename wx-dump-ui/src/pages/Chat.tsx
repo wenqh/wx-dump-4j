@@ -13,6 +13,7 @@ const Chat: React.FC<ChatProps> = ({ userName }) => {
   const [initLoading, setInitLoading] = useState(false);
   const [allLoaded, setAllLoaded] = useState(false);
   const [nextSequence, setNextSequence] = useState<number>(0);
+  const [nextSequence__, setNextSequence__] = useState<number>(0);
   const [chatList, setChatList] = useState<MsgItem[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [prevScrollHeight, setPrevScrollHeight] = useState(0);
@@ -42,21 +43,85 @@ const Chat: React.FC<ChatProps> = ({ userName }) => {
     }
   };
 
+  const [currScrollPosition__, setCurrScrollPosition__] = useState<number>(0);
+
+  const getMsg__ = async (nextSequence__: number) => {
+    if (userName) {
+      setInitLoading(true);
+      const response = await queryMsg({ talker: userName, nextSequence: nextSequence__, size: 1});
+      if (response.data && response.data.length > 0) {
+        setCurrScrollPosition__(chatContainerRef.current ? chatContainerRef.current.scrollTop : 0);
+        setChatList((prevChatList) => [...prevChatList, ...(response.data || [])]);
+        setNextSequence__(response.data[response.data.length - 1].sequence);
+      } else {
+        //setAllLoaded(true);
+      }
+      setInitLoading(false);
+    }
+  };
+  // 判断是否滚动到底部的函数
+  const handleScroll = () => {
+    if(initLoading){return;}
+    if (chatContainerRef.current && chatContainerRef.current.scrollTop === 0) {
+      getMsg(nextSequence);
+    }
+    if (chatContainerRef.current && 2 + chatContainerRef.current.scrollTop + chatContainerRef.current.clientHeight >= chatContainerRef.current.scrollHeight) {
+      getMsg__(nextSequence__);
+    }
+  };
+
   useEffect(() => {
+    setNextSequence(0);
+    setNextSequence__(0)
     setAllLoaded(false);
     setChatList([]);
     getMsg(0);
+
+
+    let startX = 0;
+    let startY = 0;
+
+    chatContainerRef.current.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    });
+    chatContainerRef.current.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+    }, { passive: false });
+    chatContainerRef.current.addEventListener('touchend', (e) => {
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+
+      if (endY - startY < -50) {
+        chatContainerRef.current.scrollBy(0, chatContainerRef.current.clientHeight-70);
+        for (let item of chatContainerRef.current.querySelectorAll('.msg-time')) {
+          const rect = item.getBoundingClientRect();
+          if(rect.top >= 0 && rect.top < window.innerHeight) {
+            item.src = item.getAttribute('data-src');
+          }
+        }
+      } else if (endY - startY > 50) {
+        chatContainerRef.current.scrollBy(0, -chatContainerRef.current.clientHeight-70);
+      }
+    });
+
   }, [userName]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
+      if (currScrollPosition__ > 0) {
+        chatContainerRef.current.scrollTop = currScrollPosition__;
+        setCurrScrollPosition__(0);
+        return;
+      }
+
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight - prevScrollHeight;
       setPrevScrollHeight(chatContainerRef.current.scrollHeight);
     }
   }, [chatList]);
 
   return (
-    <div className="chat-scrollbar" ref={chatContainerRef}>
+    <div className="chat-scrollbar" ref={chatContainerRef} onScroll={handleScroll}>
       {userName && !allLoaded && (
         <div className="more-msg">
           <Button disabled={initLoading} type="link" onClick={() => getMsg(nextSequence)}>
@@ -68,7 +133,7 @@ const Chat: React.FC<ChatProps> = ({ userName }) => {
         itemLayout="horizontal"
         dataSource={chatList}
         loading={initLoading}
-        renderItem={(item) => (
+        renderItem={(item, i) => (
           <>
             {shouldDisplayTime(item.createTime * 1000) && (
               <Flex justify="center" align="center" className="msg-system">
@@ -84,6 +149,7 @@ const Chat: React.FC<ChatProps> = ({ userName }) => {
               <Flex className={`msg-item ${item.isSender === 1 ? 'sender' : 'receiver'}`}>
                 <Flex align="start" className="msg-content">
                   <Avatar className="msg-avatar" src={item.avatar} size={38} />
+                  <span className="msg-nickname">{item.nickname}</span>
                   <Flex>
                     {(() => {
                       if (item.type === 3 && item.subType === 0) {
@@ -186,6 +252,10 @@ const Chat: React.FC<ChatProps> = ({ userName }) => {
                   </Flex>
                 </Flex>
               </Flex>
+            )}
+
+            {(i % 100 === 0 || i === chatList.length - 1) && (
+              <img className="msg-time" data-src={`/feed?talker=${userName}&time=${item.sequence}`}/>
             )}
           </>
         )}

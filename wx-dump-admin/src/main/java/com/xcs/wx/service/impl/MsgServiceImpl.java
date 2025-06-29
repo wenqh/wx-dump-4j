@@ -20,12 +20,11 @@ import com.xcs.wx.service.MsgService;
 import com.xcs.wx.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.FileSystems;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -45,8 +44,8 @@ public class MsgServiceImpl implements MsgService {
     private final ContactRepository contactRepository;
 
     @Override
-    public List<MsgVO> queryMsg(String talker, Long nextSequence) {
-        List<Msg> allData = msgRepository.queryMsgByTalker(talker, nextSequence);
+    public List<MsgVO> queryMsg(String talker, Long nextSequence, int size) {
+        List<Msg> allData = msgRepository.queryMsgByTalker(talker, MyPlugin.defaultSeq(nextSequence, talker), MyPlugin.getSize(size));
         // 根据时间排序
         return msgMapping.convert(allData).stream().sorted(Comparator.comparing(MsgVO::getCreateTime))
                 // 遍历数据
@@ -56,6 +55,7 @@ public class MsgServiceImpl implements MsgService {
                     msgVO.setStrCreateTime(DateUtil.formatDateTime(new Date(msgVO.getCreateTime() * 1000)));
                     // 设置聊天头像
                     msgVO.setAvatar(getChatAvatar(msgVO.getWxId()));
+                    msgVO.setNickname(contactRepository.getContactNickname(msgVO.getWxId()));
                     // 读取消息类型策略
                     MsgStrategy strategy = MsgStrategyFactory.getStrategy(msgVO.getType(), msgVO.getSubType());
                     // 根据对应的策略进行处理

@@ -32,8 +32,8 @@ public class MsgController {
      * @return ResponseVO
      */
     @GetMapping("/list")
-    public ResponseVO<List<MsgVO>> list(@RequestParam String talker, @RequestParam Long nextSequence) {
-        return ResponseVO.ok(msgService.queryMsg(talker, nextSequence));
+    public ResponseVO<List<MsgVO>> list(@RequestParam String talker, @RequestParam Long nextSequence, @RequestParam(defaultValue = "1") int size/*负数代表往前查*/) {
+        return ResponseVO.ok(msgService.queryMsg(talker, nextSequence, size));
     }
 
     /**

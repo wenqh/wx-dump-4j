@@ -40,4 +40,5 @@ public class SessionVO {
      * 头像Url
      */
     private String headImgUrl;
+    private boolean hasNotification;
 }

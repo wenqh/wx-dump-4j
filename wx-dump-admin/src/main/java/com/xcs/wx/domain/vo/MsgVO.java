@@ -72,6 +72,8 @@ public class MsgVO {
      */
     private String avatar;
 
+    private String nickname;
+
     /**
      * 图片地址Md5
      */
