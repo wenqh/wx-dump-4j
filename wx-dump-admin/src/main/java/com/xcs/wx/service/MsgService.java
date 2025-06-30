@@ -19,7 +19,7 @@ public interface MsgService {
      * @param nextSequence 下一个序列号
      * @return MsgVO
      */
-    List<MsgVO> queryMsg(String talker, Long nextSequence, int size);
+    List<MsgVO> queryMsg(String talker, Long nextSequence, Integer size);
 
     /**
      * 导出聊天记录

@@ -48,7 +48,7 @@ const Chat: React.FC<ChatProps> = ({ userName }) => {
   const getMsg__ = async (nextSequence__: number) => {
     if (userName) {
       setInitLoading(true);
-      const response = await queryMsg({ talker: userName, nextSequence: nextSequence__, size: 1});
+      const response = await queryMsg({ talker: userName, nextSequence: nextSequence__, size: -1});
       if (response.data && response.data.length > 0) {
         setCurrScrollPosition__(chatContainerRef.current ? chatContainerRef.current.scrollTop : 0);
         setChatList((prevChatList) => [...prevChatList, ...(response.data || [])]);

@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import static com.xcs.wx.service.impl.MyPlugin.Q_SIZE;
+
 /**
  * 消息 Controller
  *
@@ -32,7 +34,7 @@ public class MsgController {
      * @return ResponseVO
      */
     @GetMapping("/list")
-    public ResponseVO<List<MsgVO>> list(@RequestParam String talker, @RequestParam Long nextSequence, @RequestParam(defaultValue = "1") int size/*负数代表往前查*/) {
+    public ResponseVO<List<MsgVO>> list(@RequestParam String talker, @RequestParam Long nextSequence, @RequestParam(defaultValue = Q_SIZE) Integer size/*负数代表往前查*/) {
         return ResponseVO.ok(msgService.queryMsg(talker, nextSequence, size));
     }
 

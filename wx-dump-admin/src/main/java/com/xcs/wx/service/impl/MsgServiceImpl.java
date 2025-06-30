@@ -20,7 +20,6 @@ import com.xcs.wx.service.MsgService;
 import com.xcs.wx.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.FileSystems;
@@ -44,8 +43,8 @@ public class MsgServiceImpl implements MsgService {
     private final ContactRepository contactRepository;
 
     @Override
-    public List<MsgVO> queryMsg(String talker, Long nextSequence, int size) {
-        List<Msg> allData = msgRepository.queryMsgByTalker(talker, MyPlugin.defaultSeq(nextSequence, talker), MyPlugin.getSize(size));
+    public List<MsgVO> queryMsg(String talker, Long nextSequence, Integer size) {
+        List<Msg> allData = msgRepository.queryMsgByTalker(talker, MyPlugin.orDefaultSeq(nextSequence, talker), size);
         // 根据时间排序
         return msgMapping.convert(allData).stream().sorted(Comparator.comparing(MsgVO::getCreateTime))
                 // 遍历数据
