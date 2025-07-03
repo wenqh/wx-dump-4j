@@ -1,0 +1,1 @@
+<header style="position: fixed; top: 0; left: 0; width: 100vw; height: 40px; background-color: #fff; border-bottom: 1px solid #aaa; display: grid; place-items: center;"><a href="" style="text-decoration: none">{{title}}</a></header>

@@ -32,7 +32,9 @@ public class MsgRepositoryImpl extends ServiceImpl<MsgMapper, Msg> implements Ms
     @Override
     public List<Msg> queryMsgByTalker(String talker, Long nextSequence, int size) {
         List<Msg> msgList = new ArrayList<>();
-        List<String> msgDbList = DataSourceType.getMsgDb().stream().sorted(size >= 0 ? Comparator.naturalOrder() : Comparator.reverseOrder()).collect(Collectors.toList());
+        List<String> msgDbList = DataSourceType.getMsgDb().stream()
+                .sorted(Comparator.comparingInt(s -> (size > 0 ? 1 : -1) * Integer.parseInt(s.replaceAll(".*#MSG(\\d+)\\.db", "$1"))))
+                .toList();
         int offset = Math.abs(size);
         for (String poolName : msgDbList) {
             if (offset <= 0) break;
