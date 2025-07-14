@@ -101,7 +101,8 @@ public class MyPlugin {
         @Override
         public boolean support(Integer type, Integer subType) {
             return SpringUtil.getBeansOfType(MsgStrategy.class)
-                    .values().stream().noneMatch(x -> x != this && x.support(type, subType));
+                    .values().stream().filter(x -> x != this)
+                    .allMatch(x -> !x.support(type, subType));
         }
 
         @Override
@@ -222,8 +223,6 @@ public class MyPlugin {
             });
         }
 
-        unreadCounts = msgRepositoryImpl__.queryUnreadCounts(allUnreadTimes);
-
         /*String html = sessions.stream()
                 .filter(x -> x.getUserName().endsWith("@chatroom"))
                 .map(x -> """
@@ -232,11 +231,11 @@ public class MyPlugin {
                         .replace("{{2}}", x.getNickName()))
                 .collect(Collectors.joining());*/
 
-        StringBuilder html = new StringBuilder("<table>");
+        StringBuilder html = new StringBuilder("<table style=\"font-size: 1.2em\">");
         sessions.forEach(x ->
                 html.append("""
-                        <tr>
-                            <td><a style="display: block" href="msg/%s" onclick="parentNode.nextElementSibling.firstChild.style.background='#888'">%s</a></td>
+                        <tr onclick="style.background='#bbb'">
+                            <td><a style="display: block; max-width: 60vw; white-space: nowrap;" href="msg/%s" >%s</a></td>
                             <td style="text-align:right"><span style="background: black; color: white; border-radius: 15px;">%s</span></td>
                             <td style="text-align:right">%s</td>
                         </tr>
@@ -247,9 +246,35 @@ public class MyPlugin {
         );
         html.append("</table>");
 
-        return "<a href=\"/api/database/decrypt?pid=12836&basePath=C%3A%5CUsers%5CAdministrator%5CDocuments%5CWeChat+Files&wxId=wxid_al3hubj4v69x22&nickname=%E5%8D%8E%E5%93%A5&version=3.9.12.51&account=wen-qianghua&mobile=13651862250\">**解密数据**</a><br>"
-                + html
-                + "<script src=\"https://wenqh.github.io/page.js\"></script>";
+        return """
+                <html lang="zh-CN">
+                  <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+                    <link rel="icon" href="https://cdn-icons-png.freepik.com/128/1946/1946554.png">
+                    <title>微信消息</title>
+                  </head><body>""" +
+                //"<a href=\"/api/database/decrypt?pid=12836&basePath=C%3A%5CUsers%5CAdministrator%5CDocuments%5CWeChat+Files&wxId=wxid_al3hubj4v69x22&nickname=%E5%8D%8E%E5%93%A5&version=3.9.12.51&account=wen-qianghua&mobile=13651862250\">**解密数据**</a><br>" +
+                "<button id='decrypt-btn' data-url=\"/api/database/decrypt?pid=12836&basePath=C%3A%5CUsers%5CAdministrator%5CDocuments%5CWeChat+Files&wxId=wxid_al3hubj4v69x22&nickname=%E5%8D%8E%E5%93%A5&version=3.9.12.51&account=wen-qianghua&mobile=13651862250\">**解密数据**</button><br>" +
+                html +
+                "<script src=\"https://wenqh.github.io/page.js\"></script>" +
+                """
+                <script>
+                document.getElementById('decrypt-btn').addEventListener('click', (e) => {
+                    const es = new EventSource(e.target.getAttribute('data-url'));
+                    es.onmessage = (event) => {
+                        const { data } = JSON.parse(event.data);
+                        const { currentProgress } = data || {};
+                        if(currentProgress === 100){es.close();currentProgress = "✔️ 完成"}
+                        e.target.innerHTML = `进度: ${currentProgress}%`;
+                    }
+                    es.onerror = (event) => {
+                        e.target.innerHTML = "❌ 连接失败或已断开";
+                        es.close();
+                    };
+                });
+                </script>""" +
+                "</body></html>";
     }
 
     @GetMapping(value = "html/msg/{talker}", produces = "text/html;charset=UTF-8")
@@ -263,11 +288,11 @@ public class MyPlugin {
             MsgVO x = msgList.get(i);
 
             String str = "";
-            if (i > 0 && x.getCreateTime() - msgList.get(i - 1).getCreateTime() > 10 * 60) {
+            /*if (i > 0 && x.getCreateTime() - msgList.get(i - 1).getCreateTime() > 10 * 60) {
                 //str = "<div class=\"time\">" + FormatTimeUtil.format(LocalDateTime.ofInstant(Instant.ofEpochSecond(m.time), ZoneId.systemDefault())) + "</div>";
-                //str = "<div class=\"sys\" style=\"text-align: right\">" + DateFormatUtil.formatTimestamp(x.getCreateTime()) + "</div>";
-            }
-            if (i > 0 && Optional.of(msgList.get(i - 1)).filter(y -> !x.getNickname().equals(y.getNickname()) && x.getType() != 1000).isPresent()) {
+                str = "<div class=\"sys\" style=\"text-align: right\">" + DateFormatUtil.formatTimestamp(x.getCreateTime()) + "</div>";
+            }*/
+            if (i == 0 || !x.getNickname().equals(msgList.get(i - 1).getNickname())) {
                 str += "<div class=\"nickname\">●" + x.getNickname() + "</div>";
             }
 
@@ -278,6 +303,7 @@ public class MyPlugin {
             if (x.getThumb() != null) {
                 //msg = "<img src=\"" + "/img/wx/" + x.getThumb().substring(x.getThumb().lastIndexOf("\\") + 1, x.getThumb().length() - 4) + "\">";
                 msg = "<img src=\"/api/image/downloadImgFormLocal?localPath=" + URLEncodeUtil.encode(x.getThumb()) + "\">";
+                if("[视频]".equals(x.getStrContent())) {msg = "[视频]" + msg;}
             }
             if (x.getImage() != null) {
                 //msg += "<img data-src=\"" + "/img/wx/" + x.getImage().substring(x.getImage().lastIndexOf("\\") + 1, x.getImage().length() - 4) + "\">";
@@ -391,7 +417,8 @@ public class MyPlugin {
                             for (const el of document.querySelectorAll('.time-anchor')) {
                                 const { top } = el.getBoundingClientRect();
                                 if (top >= 0 && top < window.innerHeight) {
-                                    el.style.backgroundImage = `url('/read-time?${el.dataset.q}')`;
+                                    fetch(`/read-time?${el.dataset.q}`);
+                                    el.remove();
                                     return;
                                 }
                             }
