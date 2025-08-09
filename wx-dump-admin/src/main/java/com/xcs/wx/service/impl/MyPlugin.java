@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.squareup.okhttp.OkHttpClient;
 import com.xcs.wx.constant.DataSourceType;
 import com.xcs.wx.domain.Msg;
 import com.xcs.wx.domain.vo.MsgVO;
@@ -25,14 +26,21 @@ import com.xcs.wx.util.DateFormatUtil;
 import com.xcs.wx.util.LZ4Util;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -42,6 +50,7 @@ import java.util.stream.Collectors;
 
 //@Component
 @RestController
+@EnableScheduling
 public class MyPlugin {
     private static String WX_CFG = "D:/Read/static/read_time.json";
     public static JsonNode json;
@@ -63,7 +72,6 @@ public class MyPlugin {
     }
 
     public static final String Q_SIZE = "500";
-
 
     @Component
     public static class MsgStrategy__ implements MsgStrategy {
@@ -257,16 +265,16 @@ public class MyPlugin {
                 //"<a href=\"/api/database/decrypt?pid=12836&basePath=C%3A%5CUsers%5CAdministrator%5CDocuments%5CWeChat+Files&wxId=wxid_al3hubj4v69x22&nickname=%E5%8D%8E%E5%93%A5&version=3.9.12.51&account=wen-qianghua&mobile=13651862250\">**解密数据**</a><br>" +
                 "<button id='decrypt-btn' data-url=\"/api/database/decrypt?pid=12836&basePath=C%3A%5CUsers%5CAdministrator%5CDocuments%5CWeChat+Files&wxId=wxid_al3hubj4v69x22&nickname=%E5%8D%8E%E5%93%A5&version=3.9.12.51&account=wen-qianghua&mobile=13651862250\">**解密数据**</button><br>" +
                 html +
-                "<script src=\"https://wenqh.github.io/page.js\"></script>" +
+                "<script src=\"/page.js\"></script>" +
                 """
                 <script>
                 document.getElementById('decrypt-btn').addEventListener('click', (e) => {
                     const es = new EventSource(e.target.getAttribute('data-url'));
                     es.onmessage = (event) => {
                         const { data } = JSON.parse(event.data);
-                        const { currentProgress } = data || {};
-                        if(currentProgress === 100){es.close();currentProgress = "✔️ 完成"}
-                        e.target.innerHTML = `进度: ${currentProgress}%`;
+                        let txt = `进度: ${data.currentProgress}%`;
+                        if(data.currentProgress === 100){es.close(); txt = '✔️ 完成';}
+                        e.target.innerHTML = txt;
                     }
                     es.onerror = (event) => {
                         e.target.innerHTML = "❌ 连接失败或已断开";
@@ -411,7 +419,7 @@ public class MyPlugin {
                         {{body}}
                         <hr><div style="text-align: center">{{endTip}}</div>
                         </body>
-                        <script src="https://wenqh.github.io/page.js"></script>
+                        <script src="/page.js"></script>
                         <script>
                         function _hook() {
                             for (const el of document.querySelectorAll('.time-anchor')) {
@@ -481,5 +489,40 @@ public class MyPlugin {
 
             return unreadCounts;
         }
+    }
+
+
+    public static String IPV6 = null;
+    @Scheduled(fixedDelay = 10 * 60 * 1000)
+    public void telegram() throws SocketException {
+        String ipv6 = NetworkInterface.networkInterfaces()
+                .filter(net -> {
+                    try {
+                        return net.isUp() && !net.isLoopback();
+                    } catch (Exception e) {
+                        return false;
+                    }
+                })
+                .flatMap(net -> Collections.list(net.getInetAddresses()).stream())
+                .filter(addr -> addr instanceof Inet6Address)
+                .filter(addr -> !addr.isLoopbackAddress() && !addr.isLinkLocalAddress())
+                .map(InetAddress::getHostAddress)
+                .findFirst().orElse("");
+        if (ipv6.equals(IPV6)) {
+            return;
+        }
+
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setProxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("127.0.0.1", 7897)));
+
+        RestTemplate restTemplate = new RestTemplate(factory);
+        restTemplate.getMessageConverters().clear();
+        restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
+
+        String text = "http://[" + ipv6 + "]:8080/html/chats";
+        restTemplate.postForObject("https://api.telegram.org/bot9262/sendMessage",
+                Map.of("chat_id", "-4614963368", "text", text), ObjectNode.class);
+
+        IPV6 = ipv6;
     }
 }

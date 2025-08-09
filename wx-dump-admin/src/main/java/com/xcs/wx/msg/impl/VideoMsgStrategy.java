@@ -1,5 +1,7 @@
 package com.xcs.wx.msg.impl;
 
+import cn.hutool.core.lang.Opt;
+import cn.hutool.core.util.ReUtil;
 import com.xcs.wx.domain.vo.MsgVO;
 import com.xcs.wx.msg.MsgStrategy;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,12 @@ public class VideoMsgStrategy implements MsgStrategy {
 
     @Override
     public void process(MsgVO msgVO) {
-        msgVO.setStrContent("[视频]");
+        Opt.ofNullable(msgVO.getBytesExtra())
+                .map(xmlContent -> new String(msgVO.getBytesExtra()))
+                .ifPresent(extra -> {
+                    String thumb = ReUtil.getGroup0("FileStorage\\\\Video\\\\[^\\\\]+\\\\[^\\\\]+\\.jpg", extra);
+                    msgVO.setThumb(thumb);
+                    msgVO.setStrContent("[视频]");
+                });
     }
 }
