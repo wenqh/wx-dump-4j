@@ -2,6 +2,7 @@ package com.xcs.wx.service.impl;
 
 import cn.hutool.core.lang.Opt;
 import cn.hutool.core.net.URLEncodeUtil;
+import cn.hutool.core.util.RuntimeUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
 import com.baomidou.dynamic.datasource.toolkit.DynamicDataSourceContextHolder;
@@ -12,7 +13,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.squareup.okhttp.OkHttpClient;
 import com.xcs.wx.constant.DataSourceType;
 import com.xcs.wx.domain.Msg;
 import com.xcs.wx.domain.vo.MsgVO;
@@ -26,7 +26,6 @@ import com.xcs.wx.util.DateFormatUtil;
 import com.xcs.wx.util.LZ4Util;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -40,13 +39,18 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.SocketException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 //@Component
 @RestController
@@ -495,18 +499,22 @@ public class MyPlugin {
     public static String IPV6 = null;
     @Scheduled(fixedDelay = 10 * 60 * 1000)
     public void telegram() throws SocketException {
-        String ipv6 = NetworkInterface.networkInterfaces()
-                .filter(net -> {
-                    try {
-                        return net.isUp() && !net.isLoopback();
-                    } catch (Exception e) {
-                        return false;
+
+        String commandOutput = RuntimeUtil.execForStr("ipconfig");
+
+        // 使用正则表达式匹配“临时 IPv6 地址”并捕获地址
+        final Pattern tempIpv6Pattern = Pattern.compile("临时 IPv6 地址.*? :\\s*([0-9a-fA-F:]+)");
+
+        String ipv6 = Arrays.stream(commandOutput.split("\n"))
+                .flatMap(line -> {
+                    Matcher matcher = tempIpv6Pattern.matcher(line);
+                    if (matcher.find()) {
+                        // 如果找到匹配项，返回包含捕获到的地址的 Stream
+                        return Stream.of(matcher.group(1).trim());
                     }
+                    // 如果没有匹配项，返回一个空的 Stream
+                    return Stream.empty();
                 })
-                .flatMap(net -> Collections.list(net.getInetAddresses()).stream())
-                .filter(addr -> addr instanceof Inet6Address)
-                .filter(addr -> !addr.isLoopbackAddress() && !addr.isLinkLocalAddress())
-                .map(InetAddress::getHostAddress)
                 .findFirst().orElse("");
         if (ipv6.equals(IPV6)) {
             return;
@@ -520,7 +528,7 @@ public class MyPlugin {
         restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
 
         String text = "http://[" + ipv6 + "]:8080/html/chats";
-        restTemplate.postForObject("https://api.telegram.org/bot9262/sendMessage",
+        restTemplate.postForObject("https://api.telegram.org/bot926201765:/sendMessage",
                 Map.of("chat_id", "-4614963368", "text", text), ObjectNode.class);
 
         IPV6 = ipv6;
