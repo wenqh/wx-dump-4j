@@ -124,7 +124,7 @@ public class My {
         server.start();
         System.out.println("Server started at http://localhost:8080/");
 
-        listenSendTelegram("http://[" + getIpv6() + "]:8081/session");
+        listenSendTelegram();
     }
 
     private static String httpGet(String url) {
@@ -566,9 +566,14 @@ public class My {
         }
     }
 
-    private static void listenSendTelegram(String msg) {
+    private static void listenSendTelegram() {
         Executors.newScheduledThreadPool(1, Thread.ofVirtual().factory()).scheduleAtFixedRate(() -> {
-            String text = URLEncoder.encode(msg, StandardCharsets.UTF_8);
+            String ipv6 = getIpv6();
+            if (ipv6.equals(IPV6)) {
+                return;
+            }
+
+            String text = URLEncoder.encode("http://[" + getIpv6() + "]:8081/session", StandardCharsets.UTF_8);
             String url = "https://api.telegram.org/xxxxx/sendMessage?chat_id=-4614963368&text=" + text;
 
             HttpClient client = HttpClient.newBuilder()
@@ -583,9 +588,10 @@ public class My {
             try {
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             } catch (IOException | InterruptedException e) {
-                e.printStackTrace();
                 throw new RuntimeException(e);
             }
+
+            IPV6 = ipv6;
         }, 0, 10, TimeUnit.MINUTES);
     }
 }
